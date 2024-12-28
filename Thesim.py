@@ -202,4 +202,15 @@ def simulate():
         'driver': winner_driver['name']
     })
 
-    st.success(f"The WDC winner is {winner_driver['
+    st.success(f"The WDC winner is {winner_driver['name']}!")
+    st.success(f"The Constructors' Champion is {winner_team['name']}!")
+
+# Page layout
+def main():
+    menu = ["Add Teams", "Make Team Bankrupt", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "View Teams", "Simulate", "Save/Load Progress"]
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    if choice == "Add Teams":
+        add_team()
+    elif choice == "Make Team Bankrupt":
+        make_team_bankrupt
