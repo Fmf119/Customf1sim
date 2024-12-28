@@ -60,6 +60,15 @@ def add_team():
             st.session_state['data']['teams'].append({'name': team_name, 'nationality': nationality, 'drivers': [], 'bankrupt': False, 'championships': 0})
             st.success(f"Team {team_name} added!")
 
+# Function to make a team bankrupt
+def make_team_bankrupt():
+    team_name = st.selectbox("Select team to make bankrupt", [team['name'] for team in st.session_state['data']['teams'] if not team['bankrupt']])
+    if st.button("Make Team Bankrupt"):
+        for team in st.session_state['data']['teams']:
+            if team['name'] == team_name:
+                team['bankrupt'] = True
+                st.success(f"Team {team_name} is now bankrupt!")
+
 # Function to add drivers
 def add_driver():
     driver_name = st.text_input("Enter driver name:")
@@ -161,6 +170,8 @@ def view_teams():
             st.write("**Drivers**:")
             for driver in team['drivers']:
                 st.write(f"- {driver['name']} (Age: {driver['age']}, Nationality: {driver['nationality']})")
+                st.write(f"  - Driver Championships: {driver['wdcs']}")
+                st.write(f"  - Constructor Championships: {driver['constructor_championships']}")
             st.write("---")
     else:
         st.write("No teams available.")
@@ -183,6 +194,7 @@ def simulate():
 
     winner_driver['wdcs'] += 1
     winner_team['championships'] += 1
+    winner_driver['constructor_championships'] += 1  # Each driver on the winning team gets the constructor championship too.
 
     st.session_state['data']['team_champions'].append({
         'year': len(st.session_state['data']['team_champions']) + 1,
@@ -190,67 +202,4 @@ def simulate():
         'driver': winner_driver['name']
     })
 
-    st.success(f"The WDC winner is {winner_driver['name']}!")
-    st.success(f"The Constructors' Champion is {winner_team['name']}!")
-
-# Unretire drivers and bring back former teams
-def unretire_driver():
-    retired_driver = st.selectbox("Select retired driver to unretire", [driver['name'] for driver in st.session_state['data']['hall_of_fame'] if driver['retired']])
-    if st.button("Unretire Driver"):
-        for driver in st.session_state['data']['hall_of_fame']:
-            if driver['name'] == retired_driver:
-                driver['retired'] = False
-                driver['team'] = driver['previous_team']  # Assuming we keep a reference to their last team before retirement
-                st.success(f"Driver {retired_driver} has been unretired!")
-                
-def restore_team():
-    team_name = st.selectbox("Select bankrupt team to restore", [team['name'] for team in st.session_state['data']['former_teams']])
-    if st.button("Restore Team"):
-        for team in st.session_state['data']['former_teams']:
-            if team['name'] == team_name:
-                st.session_state['data']['teams'].append(team)
-                st.session_state['data']['former_teams'] = [t for t in st.session_state['data']['former_teams'] if t['name'] != team_name]
-                st.success(f"Team {team_name} has been restored!")
-
-# Page layout
-def main():
-    menu = ["Add Teams", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "View Teams", "Simulate", "Restore Driver", "Restore Team", "Save/Load Progress"]
-    choice = st.sidebar.selectbox("Menu", menu)
-
-    if choice == "Add Teams":
-        add_team()
-    elif choice == "Add Drivers":
-        add_driver()
-    elif choice == "Transfer Drivers":
-        transfer_driver()
-    elif choice == "Driver Database":
-        driver_database()
-    elif choice == "Hall of Fame":
-        hall_of_fame()
-    elif choice == "Add Tracks":
-        add_track()
-    elif choice == "View Tracks":
-        display_tracks()
-    elif choice == "View Teams":
-        view_teams()
-    elif choice == "Simulate":
-        simulate()
-    elif choice == "Restore Driver":
-        unretire_driver()
-    elif choice == "Restore Team":
-        restore_team()
-    elif choice == "Save/Load Progress":
-        if st.button("Save Progress"):
-            save_progress()
-        if st.button("Load Progress"):
-            load_progress()
-        st.write("---")
-        file = st.file_uploader("Load from Device", type=["pkl"])
-        if file:
-            load_from_device(file)
-        st.write("---")
-        save_to_device()
-
-if __name__ == '__main__':
-    main()
-            
+    st.success(f"The WDC winner is {winner_driver['
