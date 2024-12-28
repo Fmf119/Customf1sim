@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import os
+import random
 
 # File path for saving all data
 SAVE_FILE = "f1_simulation_data.pkl"
@@ -93,6 +94,61 @@ def add_driver():
             st.session_state['data']['drivers'].append(driver)
             st.success(f"Driver {driver_name} added to team {team_name}!")
 
+# Transfer drivers between teams
+def transfer_driver():
+    driver_name = st.selectbox("Select a driver to transfer", [driver['name'] for driver in st.session_state['data']['drivers'] if not driver['retired']])
+    new_team = st.selectbox("Select new team", [team['name'] for team in st.session_state['data']['teams'] if not team['bankrupt']])
+
+    if st.button("Transfer Driver"):
+        for driver in st.session_state['data']['drivers']:
+            if driver['name'] == driver_name:
+                old_team = driver['team']
+                driver['team'] = new_team
+                # Update teams
+                for team in st.session_state['data']['teams']:
+                    if team['name'] == old_team:
+                        team['drivers'] = [d for d in team['drivers'] if d['name'] != driver_name]
+                    if team['name'] == new_team:
+                        team['drivers'].append(driver)
+                st.success(f"Driver {driver_name} transferred to {new_team}!")
+
+# Display driver database with overall ratings
+def driver_database():
+    if len(st.session_state['data']['drivers']) > 0:
+        st.write("### Driver Database")
+        for driver in st.session_state['data']['drivers']:
+            st.write(f"Name: {driver['name']}, Team: {driver['team']}, Overall: {driver['stats']['overall']:.2f}")
+    else:
+        st.write("No drivers available.")
+
+# Hall of Fame
+def hall_of_fame():
+    if len(st.session_state['data']['hall_of_fame']) > 0:
+        st.write("### Hall of Fame")
+        for member in st.session_state['data']['hall_of_fame']:
+            st.write(f"Name: {member['name']}, WDCs: {member['wdcs']}, Constructor Championships: {member['constructor_championships']}, Retirement Age: {member['retirement_age']}, Reason: {member.get('retirement_reason', 'N/A')}")
+    else:
+        st.write("Hall of Fame is empty!")
+
+# Add Track Feature
+def add_track():
+    track_name = st.text_input("Enter track name:")
+    country = st.text_input("Enter track country:")
+    
+    if st.button("Add Track"):
+        if track_name and country:
+            st.session_state['data']['tracks'].append({'name': track_name, 'country': country})
+            st.success(f"Track {track_name} added!")
+
+# Display Tracks
+def display_tracks():
+    if len(st.session_state['data']['tracks']) > 0:
+        st.write("### Tracks")
+        for track in st.session_state['data']['tracks']:
+            st.write(f"Track Name: {track['name']}, Country: {track['country']}")
+    else:
+        st.write("No tracks added yet.")
+
 # Simulate a season
 def simulate():
     # Increase drivers' ages
@@ -123,16 +179,23 @@ def simulate():
 
 # Page layout
 def main():
-    menu = ["Add Teams", "Add Drivers", "Hall of Fame", "Simulate", "Save/Load Progress"]
+    menu = ["Add Teams", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "Simulate", "Save/Load Progress"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Add Teams":
         add_team()
     elif choice == "Add Drivers":
         add_driver()
+    elif choice == "Transfer Drivers":
+        transfer_driver()
+    elif choice == "Driver Database":
+        driver_database()
     elif choice == "Hall of Fame":
-        for member in st.session_state['data']['hall_of_fame']:
-            st.write(f"Name: {member['name']}, WDCs: {member['wdcs']}, Constructor Championships: {member['constructor_championships']}, Retirement Age: {member['retirement_age']}, Reason: {member.get('retirement_reason', 'N/A')}")
+        hall_of_fame()
+    elif choice == "Add Tracks":
+        add_track()
+    elif choice == "View Tracks":
+        display_tracks()
     elif choice == "Simulate":
         simulate()
     elif choice == "Save/Load Progress":
