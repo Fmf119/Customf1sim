@@ -1,15 +1,38 @@
 import streamlit as st
 import random
+import pickle
+import os
+
+# File paths for saving data
+DATA_FILES = {
+    'teams': 'teams.pkl',
+    'drivers': 'drivers.pkl',
+    'hall_of_fame': 'hall_of_fame.pkl',
+    'former_teams': 'former_teams.pkl'
+}
 
 # Initialize session state to store the data
-if 'teams' not in st.session_state:
-    st.session_state.teams = []
-if 'drivers' not in st.session_state:
-    st.session_state.drivers = []
-if 'hall_of_fame' not in st.session_state:
-    st.session_state.hall_of_fame = []
-if 'former_teams' not in st.session_state:
-    st.session_state.former_teams = []
+def init_data():
+    for key in ['teams', 'drivers', 'hall_of_fame', 'former_teams']:
+        if key not in st.session_state:
+            st.session_state[key] = []
+
+init_data()
+
+# Save data to files
+def save_progress():
+    for key, file_path in DATA_FILES.items():
+        with open(file_path, 'wb') as f:
+            pickle.dump(st.session_state[key], f)
+    st.success("Progress saved!")
+
+# Load data from files
+def load_progress():
+    for key, file_path in DATA_FILES.items():
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as f:
+                st.session_state[key] = pickle.load(f)
+    st.success("Progress loaded!")
 
 # Function to add teams
 def add_team():
@@ -110,7 +133,7 @@ def simulate():
     winner_team = next(team for team in st.session_state.teams if team['name'] == winner_driver['team'])
 
     winner_driver['wdcs'] += 1
-    winner_team['constructor_championships'] += 1
+    winner_team['constructor_championships'] = winner_team.get('constructor_championships', 0) + 1
 
     st.write(f"The WDC winner is {winner_driver['name']}!")
     st.write(f"The Constructors' Champion is {winner_team['name']}!")
@@ -128,7 +151,7 @@ def bankrupt_team():
 
 # Page layout
 def main():
-    menu = ["Add Teams", "Add Drivers", "Hall of Fame", "Team Championship Totals", "View Teams", "Former Teams", "Simulate"]
+    menu = ["Add Teams", "Add Drivers", "Hall of Fame", "Team Championship Totals", "View Teams", "Former Teams", "Simulate", "Save/Load Progress"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Add Teams":
@@ -143,7 +166,7 @@ def main():
             st.write("Hall of Fame is empty!")
     elif choice == "Team Championship Totals":
         for team in st.session_state.teams:
-            st.write(f"Team {team['name']}: {len(team['drivers'])} drivers, Championships: {team['constructor_championships']}")
+            st.write(f"Team {team['name']}: {len(team['drivers'])} drivers, Championships: {team.get('constructor_championships', 0)}")
     elif choice == "View Teams":
         for team in st.session_state.teams:
             st.write(f"Team: {team['name']}, Nationality: {team['nationality']}")
@@ -154,17 +177,11 @@ def main():
             st.write(f"Former Team: {team['name']}")
     elif choice == "Simulate":
         simulate()
-
-    # Additional actions
-    if choice == "Add Drivers":
-        st.write("---")
-        show_driver_profile()
-        st.write("---")
-        retire_driver()
-        st.write("---")
-        add_to_hall_of_fame()
-        st.write("---")
-        bankrupt_team()
+    elif choice == "Save/Load Progress":
+        if st.button("Save Progress"):
+            save_progress()
+        if st.button("Load Progress"):
+            load_progress()
 
 if __name__ == '__main__':
     main()
