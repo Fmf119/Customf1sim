@@ -156,4 +156,101 @@ def view_teams():
         for team in st.session_state['data']['teams']:
             st.write(f"**Team Name**: {team['name']}")
             st.write(f"**Nationality**: {team['nationality']}")
+            st.write(f"**Championships Won**: {team['championships']}")
+            st.write(f"**Bankrupt**: {'Yes' if team['bankrupt'] else 'No'}")
+            st.write("**Drivers**:")
+            for driver in team['drivers']:
+                st.write(f"- {driver['name']} (Age: {driver['age']}, Nationality: {driver['nationality']})")
+            st.write("---")
+    else:
+        st.write("No teams available.")
+
+# Simulate a season
+def simulate():
+    # Increase drivers' ages
+    for driver in st.session_state['data']['drivers']:
+        if not driver['retired']:
+            driver['age'] += 1
+    
+    # Simulate WDC and Constructors Championship
+    active_drivers = [d for d in st.session_state['data']['drivers'] if not d['retired']]
+    if not active_drivers:
+        st.error("No active drivers to simulate!")
+        return
+    
+    winner_driver = random.choice(active_drivers)
+    winner_team = next(team for team in st.session_state['data']['teams'] if team['name'] == winner_driver['team'])
+
+    winner_driver['wdcs'] += 1
+    winner_team['championships'] += 1
+
+    st.session_state['data']['team_champions'].append({
+        'year': len(st.session_state['data']['team_champions']) + 1,
+        'team': winner_team['name'],
+        'driver': winner_driver['name']
+    })
+
+    st.success(f"The WDC winner is {winner_driver['name']}!")
+    st.success(f"The Constructors' Champion is {winner_team['name']}!")
+
+# Unretire drivers and bring back former teams
+def unretire_driver():
+    retired_driver = st.selectbox("Select retired driver to unretire", [driver['name'] for driver in st.session_state['data']['hall_of_fame'] if driver['retired']])
+    if st.button("Unretire Driver"):
+        for driver in st.session_state['data']['hall_of_fame']:
+            if driver['name'] == retired_driver:
+                driver['retired'] = False
+                driver['team'] = driver['previous_team']  # Assuming we keep a reference to their last team before retirement
+                st.success(f"Driver {retired_driver} has been unretired!")
+                
+def restore_team():
+    team_name = st.selectbox("Select bankrupt team to restore", [team['name'] for team in st.session_state['data']['former_teams']])
+    if st.button("Restore Team"):
+        for team in st.session_state['data']['former_teams']:
+            if team['name'] == team_name:
+                st.session_state['data']['teams'].append(team)
+                st.session_state['data']['former_teams'] = [t for t in st.session_state['data']['former_teams'] if t['name'] != team_name]
+                st.success(f"Team {team_name} has been restored!")
+
+# Page layout
+def main():
+    menu = ["Add Teams", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "View Teams", "Simulate", "Restore Driver", "Restore Team", "Save/Load Progress"]
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    if choice == "Add Teams":
+        add_team()
+    elif choice == "Add Drivers":
+        add_driver()
+    elif choice == "Transfer Drivers":
+        transfer_driver()
+    elif choice == "Driver Database":
+        driver_database()
+    elif choice == "Hall of Fame":
+        hall_of_fame()
+    elif choice == "Add Tracks":
+        add_track()
+    elif choice == "View Tracks":
+        display_tracks()
+    elif choice == "View Teams":
+        view_teams()
+    elif choice == "Simulate":
+        simulate()
+    elif choice == "Restore Driver":
+        unretire_driver()
+    elif choice == "Restore Team":
+        restore_team()
+    elif choice == "Save/Load Progress":
+        if st.button("Save Progress"):
+            save_progress()
+        if st.button("Load Progress"):
+            load_progress()
+        st.write("---")
+        file = st.file_uploader("Load from Device", type=["pkl"])
+        if file:
+            load_from_device(file)
+        st.write("---")
+        save_to_device()
+
+if __name__ == '__main__':
+    main()
             
