@@ -15,8 +15,7 @@ def init_data():
             'hall_of_fame': [],
             'former_teams': [],
             'tracks': [],
-            'team_champions': [],
-            'driver_champions': []  # Added to track the Drivers' Championship
+            'team_champions': []
         }
 
 init_data()
@@ -60,18 +59,6 @@ def add_team():
         if team_name:
             st.session_state['data']['teams'].append({'name': team_name, 'nationality': nationality, 'drivers': [], 'bankrupt': False, 'championships': 0})
             st.success(f"Team {team_name} added!")
-
-# Function to force teams into bankruptcy
-def force_bankruptcy():
-    team_name = st.selectbox("Select team to force into bankruptcy", [team['name'] for team in st.session_state['data']['teams'] if not team['bankrupt']])
-    if st.button("Force Bankruptcy"):
-        for team in st.session_state['data']['teams']:
-            if team['name'] == team_name:
-                # Mark team as bankrupt and move it to former_teams
-                team['bankrupt'] = True
-                st.session_state['data']['former_teams'].append(team)
-                st.session_state['data']['teams'] = [t for t in st.session_state['data']['teams'] if t['name'] != team_name]
-                st.success(f"Team {team_name} has been forced into bankruptcy and removed from the active teams list!")
 
 # Function to add drivers
 def add_driver():
@@ -143,6 +130,41 @@ def hall_of_fame():
     else:
         st.write("Hall of Fame is empty!")
 
+# Add Track Feature
+def add_track():
+    track_name = st.text_input("Enter track name:")
+    country = st.text_input("Enter track country:")
+    
+    if st.button("Add Track"):
+        if track_name and country:
+            st.session_state['data']['tracks'].append({'name': track_name, 'country': country})
+            st.success(f"Track {track_name} added!")
+
+# Display Tracks
+def display_tracks():
+    if len(st.session_state['data']['tracks']) > 0:
+        st.write("### Tracks")
+        for track in st.session_state['data']['tracks']:
+            st.write(f"Track Name: {track['name']}, Country: {track['country']}")
+    else:
+        st.write("No tracks added yet.")
+
+# View Teams Feature
+def view_teams():
+    if len(st.session_state['data']['teams']) > 0:
+        st.write("### Teams Overview")
+        for team in st.session_state['data']['teams']:
+            st.write(f"**Team Name**: {team['name']}")
+            st.write(f"**Nationality**: {team['nationality']}")
+            st.write(f"**Championships Won**: {team['championships']}")
+            st.write(f"**Bankrupt**: {'Yes' if team['bankrupt'] else 'No'}")
+            st.write("**Drivers**:")
+            for driver in team['drivers']:
+                st.write(f"- {driver['name']} (Age: {driver['age']}, Nationality: {driver['nationality']})")
+            st.write("---")
+    else:
+        st.write("No teams available.")
+
 # Simulate a season
 def simulate():
     # Increase drivers' ages
@@ -162,29 +184,41 @@ def simulate():
     winner_driver['wdcs'] += 1
     winner_team['championships'] += 1
 
-    # Track the champions for this season
     st.session_state['data']['team_champions'].append({
         'year': len(st.session_state['data']['team_champions']) + 1,
         'team': winner_team['name'],
-        'driver': winner_driver['name']
-    })
-    st.session_state['data']['driver_champions'].append({
-        'year': len(st.session_state['data']['driver_champions']) + 1,
         'driver': winner_driver['name']
     })
 
     st.success(f"The WDC winner is {winner_driver['name']}!")
     st.success(f"The Constructors' Champion is {winner_team['name']}!")
 
+# Unretire drivers and bring back former teams
+def unretire_driver():
+    retired_driver = st.selectbox("Select retired driver to unretire", [driver['name'] for driver in st.session_state['data']['hall_of_fame'] if driver['retired']])
+    if st.button("Unretire Driver"):
+        for driver in st.session_state['data']['hall_of_fame']:
+            if driver['name'] == retired_driver:
+                driver['retired'] = False
+                driver['team'] = driver['previous_team']  # Assuming we keep a reference to their last team before retirement
+                st.success(f"Driver {retired_driver} has been unretired!")
+                
+def restore_team():
+    team_name = st.selectbox("Select bankrupt team to restore", [team['name'] for team in st.session_state['data']['former_teams']])
+    if st.button("Restore Team"):
+        for team in st.session_state['data']['former_teams']:
+            if team['name'] == team_name:
+                st.session_state['data']['teams'].append(team)
+                st.session_state['data']['former_teams'] = [t for t in st.session_state['data']['former_teams'] if t['name'] != team_name]
+                st.success(f"Team {team_name} has been restored!")
+
 # Page layout
 def main():
-    menu = ["Add Teams", "Force Bankruptcy", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Simulate", "View Teams", "Save/Load Progress"]
+    menu = ["Add Teams", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "View Teams", "Simulate", "Restore Driver", "Restore Team", "Save/Load Progress"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Add Teams":
         add_team()
-    elif choice == "Force Bankruptcy":
-        force_bankruptcy()
     elif choice == "Add Drivers":
         add_driver()
     elif choice == "Transfer Drivers":
@@ -193,10 +227,18 @@ def main():
         driver_database()
     elif choice == "Hall of Fame":
         hall_of_fame()
+    elif choice == "Add Tracks":
+        add_track()
+    elif choice == "View Tracks":
+        display_tracks()
+    elif choice == "View Teams":
+        view_teams()  # This calls the view_teams function
     elif choice == "Simulate":
         simulate()
-    elif choice == "View Teams":
-        view_teams()
+    elif choice == "Restore Driver":
+        unretire_driver()
+    elif choice == "Restore Team":
+        restore_team()
     elif choice == "Save/Load Progress":
         if st.button("Save Progress"):
             save_progress()
