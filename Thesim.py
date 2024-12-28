@@ -149,66 +149,11 @@ def display_tracks():
     else:
         st.write("No tracks added yet.")
 
-# Simulate a season
-def simulate():
-    # Increase drivers' ages
-    for driver in st.session_state['data']['drivers']:
-        if not driver['retired']:
-            driver['age'] += 1
-    
-    # Simulate WDC and Constructors Championship
-    active_drivers = [d for d in st.session_state['data']['drivers'] if not d['retired']]
-    if not active_drivers:
-        st.error("No active drivers to simulate!")
-        return
-    
-    winner_driver = random.choice(active_drivers)
-    winner_team = next(team for team in st.session_state['data']['teams'] if team['name'] == winner_driver['team'])
-
-    winner_driver['wdcs'] += 1
-    winner_team['championships'] += 1
-
-    st.session_state['data']['team_champions'].append({
-        'year': len(st.session_state['data']['team_champions']) + 1,
-        'team': winner_team['name'],
-        'driver': winner_driver['name']
-    })
-
-    st.success(f"The WDC winner is {winner_driver['name']}!")
-    st.success(f"The Constructors' Champion is {winner_team['name']}!")
-
-# Page layout
-def main():
-    menu = ["Add Teams", "Add Drivers", "Transfer Drivers", "Driver Database", "Hall of Fame", "Add Tracks", "View Tracks", "Simulate", "Save/Load Progress"]
-    choice = st.sidebar.selectbox("Menu", menu)
-
-    if choice == "Add Teams":
-        add_team()
-    elif choice == "Add Drivers":
-        add_driver()
-    elif choice == "Transfer Drivers":
-        transfer_driver()
-    elif choice == "Driver Database":
-        driver_database()
-    elif choice == "Hall of Fame":
-        hall_of_fame()
-    elif choice == "Add Tracks":
-        add_track()
-    elif choice == "View Tracks":
-        display_tracks()
-    elif choice == "Simulate":
-        simulate()
-    elif choice == "Save/Load Progress":
-        if st.button("Save Progress"):
-            save_progress()
-        if st.button("Load Progress"):
-            load_progress()
-        st.write("---")
-        file = st.file_uploader("Load from Device", type=["pkl"])
-        if file:
-            load_from_device(file)
-        st.write("---")
-        save_to_device()
-
-if __name__ == '__main__':
-    main()
+# View Teams Feature
+def view_teams():
+    if len(st.session_state['data']['teams']) > 0:
+        st.write("### Teams Overview")
+        for team in st.session_state['data']['teams']:
+            st.write(f"**Team Name**: {team['name']}")
+            st.write(f"**Nationality**: {team['nationality']}")
+            
