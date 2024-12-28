@@ -104,7 +104,7 @@ def retire_driver():
             if driver['name'] == driver_name:
                 driver['retired'] = True
                 driver['retirement_reason'] = retirement_reason
-                st.success(f"Driver {driver_name} has retired!")
+                st.success(f"Driver {driver_name} has retired with reason: {retirement_reason}")
 
 # Add driver to hall of fame
 def add_to_hall_of_fame():
@@ -119,7 +119,7 @@ def add_to_hall_of_fame():
                     'constructor_championships': driver['constructor_championships'],
                     'retirement_age': driver['age']
                 })
-                st.success(f"Driver {driver_name} added to Hall of Fame!")
+                st.success(f"Driver {driver['name']} added to Hall of Fame!")
 
 # Simulate a season
 def simulate():
@@ -158,6 +158,8 @@ def main():
         add_team()
     elif choice == "Add Drivers":
         add_driver()
+        st.write("---")
+        retire_driver()
     elif choice == "Hall of Fame":
         if len(st.session_state.hall_of_fame) > 0:
             for member in st.session_state.hall_of_fame:
