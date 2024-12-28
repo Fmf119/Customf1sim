@@ -8,31 +8,49 @@ DATA_FILES = {
     'teams': 'teams.pkl',
     'drivers': 'drivers.pkl',
     'hall_of_fame': 'hall_of_fame.pkl',
-    'former_teams': 'former_teams.pkl'
+    'former_teams': 'former_teams.pkl',
+    'tracks': 'tracks.pkl'
 }
 
 # Initialize session state to store the data
 def init_data():
-    for key in ['teams', 'drivers', 'hall_of_fame', 'former_teams']:
+    for key in ['teams', 'drivers', 'hall_of_fame', 'former_teams', 'tracks']:
         if key not in st.session_state:
             st.session_state[key] = []
 
 init_data()
 
-# Save data to files
+# Save progress to files
 def save_progress():
     for key, file_path in DATA_FILES.items():
         with open(file_path, 'wb') as f:
             pickle.dump(st.session_state[key], f)
     st.success("Progress saved!")
 
-# Load data from files
+# Load progress from files
 def load_progress():
     for key, file_path in DATA_FILES.items():
         if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 st.session_state[key] = pickle.load(f)
     st.success("Progress loaded!")
+
+# Save progress locally
+def save_to_device():
+    for key in st.session_state:
+        if key in DATA_FILES:
+            st.download_button(
+                label=f"Download {key.capitalize()} Data",
+                data=pickle.dumps(st.session_state[key]),
+                file_name=f"{key}.pkl",
+                mime="application/octet-stream"
+            )
+
+# Load progress from local file
+def load_from_device(file, key):
+    if file is not None:
+        st.session_state[key] = pickle.loads(file.read())
+        st.success(f"{key.capitalize()} data loaded from file!")
 
 # Function to add teams
 def add_team():
@@ -58,11 +76,12 @@ def add_driver():
 
     if st.button("Add Driver"):
         if driver_name and nationality and team_name:
+            overall = (racecraft + overtaking + iq + focus + potential) / 5
             driver = {
                 'name': driver_name,
                 'nationality': nationality,
                 'age': age,
-                'stats': {'racecraft': racecraft, 'overtaking': overtaking, 'iq': iq, 'focus': focus, 'potential': potential},
+                'stats': {'racecraft': racecraft, 'overtaking': overtaking, 'iq': iq, 'focus': focus, 'potential': potential, 'overall': overall},
                 'team': team_name,
                 'retired': False,
                 'retirement_reason': None,
@@ -76,50 +95,40 @@ def add_driver():
             st.session_state.drivers.append(driver)
             st.success(f"Driver {driver_name} added to team {team_name}!")
 
-# Show driver profile
-def show_driver_profile():
-    driver_name = st.selectbox("Select a driver to view profile", [driver['name'] for driver in st.session_state.drivers])
-    for driver in st.session_state.drivers:
-        if driver['name'] == driver_name:
-            st.write(f"Name: {driver['name']}")
-            st.write(f"Nationality: {driver['nationality']}")
-            st.write(f"Age: {driver['age']}")
-            st.write(f"Racecraft: {driver['stats']['racecraft']}")
-            st.write(f"Overtaking: {driver['stats']['overtaking']}")
-            st.write(f"IQ: {driver['stats']['iq']}")
-            st.write(f"Focus: {driver['stats']['focus']}")
-            st.write(f"Potential: {driver['stats']['potential']}")
-            if driver['retired']:
-                st.write(f"Retired: Yes, at age {driver['age']} due to {driver['retirement_reason']}")
-            else:
-                st.write(f"Retired: No")
-
-# Retire a driver
-def retire_driver():
-    driver_name = st.selectbox("Select a driver to retire", [driver['name'] for driver in st.session_state.drivers if not driver['retired']])
-    retirement_reason = st.text_input("Enter retirement reason:")
+# Transfer drivers between teams
+def transfer_driver():
+    driver_name = st.selectbox("Select a driver to transfer", [driver['name'] for driver in st.session_state.drivers if not driver['retired']])
+    new_team = st.selectbox("Select new team", [team['name'] for team in st.session_state.teams if not team['bankrupt']])
     
-    if st.button("Retire Driver"):
+    if st.button("Transfer Driver"):
         for driver in st.session_state.drivers:
             if driver['name'] == driver_name:
-                driver['retired'] = True
-                driver['retirement_reason'] = retirement_reason
-                st.success(f"Driver {driver_name} has retired with reason: {retirement_reason}")
+                old_team = driver['team']
+                driver['team'] = new_team
+                # Update teams
+                for team in st.session_state.teams:
+                    if team['name'] == old_team:
+                        team['drivers'] = [d for d in team['drivers'] if d['name'] != driver_name]
+                    if team['name'] == new_team:
+                        team['drivers'].append(driver)
+                st.success(f"Driver {driver_name} transferred to {new_team}!")
 
-# Add driver to hall of fame
-def add_to_hall_of_fame():
-    driver_name = st.selectbox("Select a driver to add to Hall of Fame", [driver['name'] for driver in st.session_state.drivers if not driver['retired']])
-    
-    if st.button("Add to Hall of Fame"):
-        for driver in st.session_state.drivers:
-            if driver['name'] == driver_name:
-                st.session_state.hall_of_fame.append({
-                    'name': driver['name'],
-                    'wdcs': driver['wdcs'],
-                    'constructor_championships': driver['constructor_championships'],
-                    'retirement_age': driver['age']
-                })
-                st.success(f"Driver {driver['name']} added to Hall of Fame!")
+# Add race tracks
+def add_track():
+    track_name = st.text_input("Enter track name:")
+    location = st.text_input("Enter track location:")
+    if st.button("Add Track"):
+        if track_name and location:
+            st.session_state.tracks.append({'name': track_name, 'location': location})
+            st.success(f"Track {track_name} in {location} added!")
+
+# Hall of Fame
+def hall_of_fame():
+    if len(st.session_state.hall_of_fame) > 0:
+        for member in st.session_state.hall_of_fame:
+            st.write(f"Name: {member['name']}, WDCs: {member['wdcs']}, Constructor Championships: {member['constructor_championships']}, Retirement Age: {member['retirement_age']}, Reason: {member.get('retirement_reason', 'N/A')}")
+    else:
+        st.write("Hall of Fame is empty!")
 
 # Simulate a season
 def simulate():
@@ -129,7 +138,7 @@ def simulate():
             driver['age'] += 1
     
     # Simulate WDC and Constructors Championship
-    winner_driver = random.choice(st.session_state.drivers)
+    winner_driver = random.choice([d for d in st.session_state.drivers if not d['retired']])
     winner_team = next(team for team in st.session_state.teams if team['name'] == winner_driver['team'])
 
     winner_driver['wdcs'] += 1
@@ -138,34 +147,21 @@ def simulate():
     st.write(f"The WDC winner is {winner_driver['name']}!")
     st.write(f"The Constructors' Champion is {winner_team['name']}!")
 
-# Force a team into bankruptcy
-def bankrupt_team():
-    team_name = st.selectbox("Select a team to bankrupt", [team['name'] for team in st.session_state.teams if not team['bankrupt']])
-    
-    if st.button("Force Bankruptcy"):
-        for team in st.session_state.teams:
-            if team['name'] == team_name:
-                team['bankrupt'] = True
-                st.session_state.former_teams.append(team)
-                st.success(f"Team {team_name} has gone bankrupt!")
-
 # Page layout
 def main():
-    menu = ["Add Teams", "Add Drivers", "Hall of Fame", "Team Championship Totals", "View Teams", "Former Teams", "Simulate", "Save/Load Progress"]
+    menu = ["Add Teams", "Add Drivers", "Hall of Fame", "Add Tracks", "Team Championship Totals", "View Teams", "Former Teams", "Transfer Drivers", "Simulate", "Save/Load Progress"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Add Teams":
         add_team()
     elif choice == "Add Drivers":
         add_driver()
-        st.write("---")
-        retire_driver()
+    elif choice == "Transfer Drivers":
+        transfer_driver()
+    elif choice == "Add Tracks":
+        add_track()
     elif choice == "Hall of Fame":
-        if len(st.session_state.hall_of_fame) > 0:
-            for member in st.session_state.hall_of_fame:
-                st.write(f"Name: {member['name']}, WDCs: {member['wdcs']}, Constructor Championships: {member['constructor_championships']}, Retirement Age: {member['retirement_age']}")
-        else:
-            st.write("Hall of Fame is empty!")
+        hall_of_fame()
     elif choice == "Team Championship Totals":
         for team in st.session_state.teams:
             st.write(f"Team {team['name']}: {len(team['drivers'])} drivers, Championships: {team.get('constructor_championships', 0)}")
@@ -173,7 +169,7 @@ def main():
         for team in st.session_state.teams:
             st.write(f"Team: {team['name']}, Nationality: {team['nationality']}")
             for driver in team['drivers']:
-                st.write(f"  - {driver['name']}")
+                st.write(f"  - {driver['name']}: {driver['stats']['overall']:.2f} Overall Rating")
     elif choice == "Former Teams":
         for team in st.session_state.former_teams:
             st.write(f"Former Team: {team['name']}")
@@ -184,6 +180,12 @@ def main():
             save_progress()
         if st.button("Load Progress"):
             load_progress()
+        st.write("---")
+        st.file_uploader("Load from Device", type=["pkl"], key="file")
+        for key in DATA_FILES:
+            load_from_device(st.session_state.get("file"), key)
+        st.write("---")
+        save_to_device()
 
 if __name__ == '__main__':
     main()
