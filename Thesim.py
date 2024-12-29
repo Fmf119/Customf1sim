@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 import pickle
+import os
 
 # Initial Setup for data storage
 if 'teams' not in st.session_state:
@@ -144,19 +145,34 @@ def simulate():
     st.write(f"WDC Winner: {wdc_winner.name}!")
     st.write(f"Constructor's Champion: {constructor_winner['name']}!")
 
-# Save and load functionality
+# Save data locally
 def save_data():
-    with open("f1_simulation_data.pkl", "wb") as f:
-        pickle.dump(st.session_state, f)
+    data = {
+        'teams': st.session_state.teams,
+        'drivers': st.session_state.drivers,
+        'hall_of_fame': st.session_state.hall_of_fame,
+        'former_teams': st.session_state.former_teams
+    }
+    file_path = 'f1_simulation_data.pkl'
+    with open(file_path, 'wb') as f:
+        pickle.dump(data, f)
+    with open(file_path, "rb") as file:
+        st.download_button(label="Download F1 Simulation Data", data=file, file_name="f1_simulation_data.pkl", mime="application/octet-stream")
     st.success("Data saved!")
 
+# Load data from a file
 def load_data():
-    try:
+    uploaded_file = st.file_uploader("Upload saved F1 simulation data", type=["pkl"])
+    if uploaded_file is not None:
+        with open("f1_simulation_data.pkl", "wb") as f:
+            f.write(uploaded_file.read())
         with open("f1_simulation_data.pkl", "rb") as f:
-            st.session_state.update(pickle.load(f))
-        st.success("Data loaded!")
-    except FileNotFoundError:
-        st.warning("No saved data found.")
+            data = pickle.load(f)
+            st.session_state.teams = data['teams']
+            st.session_state.drivers = data['drivers']
+            st.session_state.hall_of_fame = data['hall_of_fame']
+            st.session_state.former_teams = data['former_teams']
+        st.success("Data loaded successfully!")
 
 # Main menu for navigation
 def main_menu():
